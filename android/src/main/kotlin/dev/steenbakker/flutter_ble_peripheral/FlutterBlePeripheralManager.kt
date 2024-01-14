@@ -185,7 +185,6 @@ class FlutterBlePeripheralManager(context: Context) {
         )
 
        addService(peripheralData) 
-    TODO: Add service to advertise
     }
 
     /**
@@ -206,7 +205,7 @@ class FlutterBlePeripheralManager(context: Context) {
         )
 
         // TODO: Add service to advertise
-       addService(peripheralData)
+       addService(advertiseData)
     }
 
     fun stop(advertisingCallback: AdvertiseCallback) {
@@ -226,9 +225,9 @@ class FlutterBlePeripheralManager(context: Context) {
       }
     }
     
-       private fun addService() {
-       var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4",
-       var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5",
+    private fun addService(peripheralData: AdvertiseData) {
+       var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4"
+       var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5"
        txCharacteristic = BluetoothGattCharacteristic(
            UUID.fromString(peripheralData.txCharacteristicUUID),
            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
