@@ -27,6 +27,7 @@ import io.flutter.Log
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import dev.steenbakker.flutter_ble_peripheral.handlers.StateChangedHandler
 
 class FlutterBlePeripheralManager(context: Context) {
 
@@ -47,7 +48,7 @@ class FlutterBlePeripheralManager(context: Context) {
    private var mBluetoothDevice: BluetoothDevice? = null
    private var txCharacteristic: BluetoothGattCharacteristic? = null
    private var rxCharacteristic: BluetoothGattCharacteristic? = null
-
+   private lateinit var stateChangedHandler = StateChangedHandler()
     // Permissions for Bluetooth API > 31
     @RequiresApi(Build.VERSION_CODES.S)
     private fun hasBluetoothAdvertisePermission(context: Context): Boolean {
@@ -229,19 +230,19 @@ class FlutterBlePeripheralManager(context: Context) {
        var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4"
        var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5"
        txCharacteristic = BluetoothGattCharacteristic(
-           UUID.fromString(peripheralData.txCharacteristicUUID),
+           UUID.fromString(txCharacteristicUUID),
            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
        )
 
        rxCharacteristic = BluetoothGattCharacteristic(
-           UUID.fromString(peripheralData.rxCharacteristicUUID),
+           UUID.fromString(rxCharacteristicUUID),
            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
        )
 
        val service = BluetoothGattService(
-           UUID.fromString(peripheralData.serviceDataUuid),
+           UUID.fromString(peripheralData.serviceDataUuid ?? "08590F7E-DB05-467E-8757-72F6FAEB13D3"),
            BluetoothGattService.SERVICE_TYPE_PRIMARY,
        )
 
@@ -266,12 +267,12 @@ class FlutterBlePeripheralManager(context: Context) {
                        mBluetoothDevice = device
                        mBluetoothGatt = mBluetoothDevice?.connectGatt(context, true, gattCallback)
                        stateChangedHandler.publishPeripheralState(PeripheralState.connected)
-                       Log.i(tag, "Device connected $device")
+                       Log.i("Device connected device")
                    }
 
                    BluetoothProfile.STATE_DISCONNECTED -> {
                        stateChangedHandler.publishPeripheralState(PeripheralState.idle)
-                       Log.i(tag, "Device disconnect $device")
+                       Log.i("Device disconnect device")
                    }
                }
            }
@@ -282,7 +283,7 @@ class FlutterBlePeripheralManager(context: Context) {
                offset: Int,
                characteristic: BluetoothGattCharacteristic
            ) {
-               Log.i(tag, "BLE Read Request")
+               Log.i("BLE Read Request")
 
                val status = when (characteristic.uuid) {
                    rxCharacteristic?.uuid -> BluetoothGatt.GATT_SUCCESS
@@ -301,11 +302,11 @@ class FlutterBlePeripheralManager(context: Context) {
                offset: Int,
                value: ByteArray?
            ) {
-               Log.i(tag, "BLE Write Request")
+               Log.i("BLE Write Request")
 
                val isValid = value?.isNotEmpty() == true && characteristic == rxCharacteristic
 
-               Log.i(tag, "BLE Write Request - Is valid? $isValid")
+               Log.i("BLE Write Request - Is valid? $isValid")
 
                if (isValid) {
                    mBluetoothDevice = device
@@ -313,11 +314,11 @@ class FlutterBlePeripheralManager(context: Context) {
                    stateChangedHandler.publishPeripheralState(PeripheralState.connected)
 
                    onDataReceived?.invoke(value!!)
-                   Log.i(tag, "BLE Received Data $peripheralData")
+                   Log.i("BLE Received Data $peripheralData")
                }
 
                if (responseNeeded) {
-                   Log.i(tag, "BLE Write Request - Response")
+                   Log.i("BLE Write Request - Response")
                    mBluetoothGattServer.sendResponse(
                        device,
                        requestId,
