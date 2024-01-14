@@ -317,7 +317,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
                    mBluetoothGatt = mBluetoothDevice?.connectGatt(context, true, gattCallback)
                    stateChangedHandler.publishPeripheralState(PeripheralState.connected)
 
-                   onDataReceived?.invoke(value!!)
+                  //onDataReceived?.invoke(value!!)
                    // Log.i("BLE Received Data $peripheralData")
                }
 
@@ -337,8 +337,8 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
        service.addCharacteristic(txCharacteristic)
        service.addCharacteristic(rxCharacteristic)
 
-       mBluetoothGattServer = mBluetoothManager
-             .openGattServer(this.context, serverCallback)
+       mBluetoothGattServer = mBluetoothManager?
+             .openGattServer(context, serverCallback)
            .also { it.addService(service) }
    }
 //
