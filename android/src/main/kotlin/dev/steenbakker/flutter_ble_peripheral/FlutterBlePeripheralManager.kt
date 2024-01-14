@@ -338,7 +338,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
        service.addCharacteristic(rxCharacteristic)
 
        mBluetoothGattServer = mBluetoothManager
-             .openGattServer(context, serverCallback)
+             .openGattServer(this.context, serverCallback)
            .also { it.addService(service) }
    }
 //
