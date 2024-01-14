@@ -28,7 +28,6 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
-
 class FlutterBlePeripheralManager(context: Context) {
 
     companion object {
@@ -43,11 +42,11 @@ class FlutterBlePeripheralManager(context: Context) {
     var pendingResultForPermissionResult: MethodChannel.Result? = null
 
     //TODO
-//    private lateinit var mBluetoothGattServer: BluetoothGattServer
-//    private var mBluetoothGatt: BluetoothGatt? = null
-//    private var mBluetoothDevice: BluetoothDevice? = null
-//    private var txCharacteristic: BluetoothGattCharacteristic? = null
-//    private var rxCharacteristic: BluetoothGattCharacteristic? = null
+   private lateinit var mBluetoothGattServer: BluetoothGattServer
+   private var mBluetoothGatt: BluetoothGatt? = null
+   private var mBluetoothDevice: BluetoothDevice? = null
+   private var txCharacteristic: BluetoothGattCharacteristic? = null
+   private var rxCharacteristic: BluetoothGattCharacteristic? = null
 
     // Permissions for Bluetooth API > 31
     @RequiresApi(Build.VERSION_CODES.S)
@@ -185,7 +184,8 @@ class FlutterBlePeripheralManager(context: Context) {
                 mAdvertiseCallback
         )
 
-//        addService(peripheralData) TODO: Add service to advertise
+       addService(peripheralData) 
+    TODO: Add service to advertise
     }
 
     /**
@@ -206,7 +206,7 @@ class FlutterBlePeripheralManager(context: Context) {
         )
 
         // TODO: Add service to advertise
-//        addService(peripheralData)
+       addService(peripheralData)
     }
 
     fun stop(advertisingCallback: AdvertiseCallback) {
@@ -217,127 +217,131 @@ class FlutterBlePeripheralManager(context: Context) {
     fun stopSet(advertisingSetCallback: AdvertisingSetCallback) {
         mBluetoothLeAdvertiser!!.stopAdvertisingSet(advertisingSetCallback)
     }
+    
+    fun send(data: ByteArray) {
+      txCharacteristic?.let { char ->
+          char.value = data
+          mBluetoothGatt?.writeCharacteristic(char)
+          mBluetoothGattServer.notifyCharacteristicChanged(mBluetoothDevice, char, false)
+      }
+    }
+    
+       private fun addService() {
+       var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4",
+       var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5",
+       txCharacteristic = BluetoothGattCharacteristic(
+           UUID.fromString(peripheralData.txCharacteristicUUID),
+           BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+           BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
+       )
+
+       rxCharacteristic = BluetoothGattCharacteristic(
+           UUID.fromString(peripheralData.rxCharacteristicUUID),
+           BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+           BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
+       )
+
+       val service = BluetoothGattService(
+           UUID.fromString(peripheralData.serviceDataUuid),
+           BluetoothGattService.SERVICE_TYPE_PRIMARY,
+       )
+
+       val gattCallback = object : BluetoothGattCallback() {
+           override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+               onMtuChanged?.invoke(mtu)
+           }
+       }
+
+       val serverCallback = object : BluetoothGattServerCallback() {
+           override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
+               onMtuChanged?.invoke(mtu)
+           }
+
+           override fun onConnectionStateChange(
+               device: BluetoothDevice?,
+               status: Int,
+               newState: Int
+           ) {
+               when (status) {
+                   BluetoothProfile.STATE_CONNECTED -> {
+                       mBluetoothDevice = device
+                       mBluetoothGatt = mBluetoothDevice?.connectGatt(context, true, gattCallback)
+                       stateChangedHandler.publishPeripheralState(PeripheralState.connected)
+                       Log.i(tag, "Device connected $device")
+                   }
+
+                   BluetoothProfile.STATE_DISCONNECTED -> {
+                       stateChangedHandler.publishPeripheralState(PeripheralState.idle)
+                       Log.i(tag, "Device disconnect $device")
+                   }
+               }
+           }
+
+           override fun onCharacteristicReadRequest(
+               device: BluetoothDevice,
+               requestId: Int,
+               offset: Int,
+               characteristic: BluetoothGattCharacteristic
+           ) {
+               Log.i(tag, "BLE Read Request")
+
+               val status = when (characteristic.uuid) {
+                   rxCharacteristic?.uuid -> BluetoothGatt.GATT_SUCCESS
+                   else -> BluetoothGatt.GATT_FAILURE
+               }
+
+               mBluetoothGattServer.sendResponse(device, requestId, status, 0, null)
+           }
+
+           override fun onCharacteristicWriteRequest(
+               device: BluetoothDevice,
+               requestId: Int,
+               characteristic: BluetoothGattCharacteristic,
+               preparedWrite: Boolean,
+               responseNeeded: Boolean,
+               offset: Int,
+               value: ByteArray?
+           ) {
+               Log.i(tag, "BLE Write Request")
+
+               val isValid = value?.isNotEmpty() == true && characteristic == rxCharacteristic
+
+               Log.i(tag, "BLE Write Request - Is valid? $isValid")
+
+               if (isValid) {
+                   mBluetoothDevice = device
+                   mBluetoothGatt = mBluetoothDevice?.connectGatt(context, true, gattCallback)
+                   stateChangedHandler.publishPeripheralState(PeripheralState.connected)
+
+                   onDataReceived?.invoke(value!!)
+                   Log.i(tag, "BLE Received Data $peripheralData")
+               }
+
+               if (responseNeeded) {
+                   Log.i(tag, "BLE Write Request - Response")
+                   mBluetoothGattServer.sendResponse(
+                       device,
+                       requestId,
+                       BluetoothGatt.GATT_SUCCESS,
+                       0,
+                       null
+                   )
+               }
+           }
+       }
+
+       service.addCharacteristic(txCharacteristic)
+       service.addCharacteristic(rxCharacteristic)
+
+       mBluetoothGattServer = mBluetoothManager
+           .openGattServer(context, serverCallback)
+           .also { it.addService(service) }
+   }
+//
+
 }
 
 
 // TODO: Add service to advertise
 //
-//    private fun addService() {
-//        var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4",
-//        var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5",
-//        txCharacteristic = BluetoothGattCharacteristic(
-//            UUID.fromString(peripheralData.txCharacteristicUUID),
-//            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-//            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-//        )
-//
-//        rxCharacteristic = BluetoothGattCharacteristic(
-//            UUID.fromString(peripheralData.rxCharacteristicUUID),
-//            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-//            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-//        )
-//
-//        val service = BluetoothGattService(
-//            UUID.fromString(peripheralData.serviceDataUuid),
-//            BluetoothGattService.SERVICE_TYPE_PRIMARY,
-//        )
-//
-//        val gattCallback = object : BluetoothGattCallback() {
-//            override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
-//                onMtuChanged?.invoke(mtu)
-//            }
-//        }
-//
-//        val serverCallback = object : BluetoothGattServerCallback() {
-//            override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
-//                onMtuChanged?.invoke(mtu)
-//            }
-//
-//            override fun onConnectionStateChange(
-//                device: BluetoothDevice?,
-//                status: Int,
-//                newState: Int
-//            ) {
-//                when (status) {
-//                    BluetoothProfile.STATE_CONNECTED -> {
-//                        mBluetoothDevice = device
-//                        mBluetoothGatt = mBluetoothDevice?.connectGatt(context, true, gattCallback)
-//                        stateChangedHandler.publishPeripheralState(PeripheralState.connected)
-//                        Log.i(tag, "Device connected $device")
-//                    }
-//
-//                    BluetoothProfile.STATE_DISCONNECTED -> {
-//                        stateChangedHandler.publishPeripheralState(PeripheralState.idle)
-//                        Log.i(tag, "Device disconnect $device")
-//                    }
-//                }
-//            }
-//
-//            override fun onCharacteristicReadRequest(
-//                device: BluetoothDevice,
-//                requestId: Int,
-//                offset: Int,
-//                characteristic: BluetoothGattCharacteristic
-//            ) {
-//                Log.i(tag, "BLE Read Request")
-//
-//                val status = when (characteristic.uuid) {
-//                    rxCharacteristic?.uuid -> BluetoothGatt.GATT_SUCCESS
-//                    else -> BluetoothGatt.GATT_FAILURE
-//                }
-//
-//                mBluetoothGattServer.sendResponse(device, requestId, status, 0, null)
-//            }
-//
-//            override fun onCharacteristicWriteRequest(
-//                device: BluetoothDevice,
-//                requestId: Int,
-//                characteristic: BluetoothGattCharacteristic,
-//                preparedWrite: Boolean,
-//                responseNeeded: Boolean,
-//                offset: Int,
-//                value: ByteArray?
-//            ) {
-//                Log.i(tag, "BLE Write Request")
-//
-//                val isValid = value?.isNotEmpty() == true && characteristic == rxCharacteristic
-//
-//                Log.i(tag, "BLE Write Request - Is valid? $isValid")
-//
-//                if (isValid) {
-//                    mBluetoothDevice = device
-//                    mBluetoothGatt = mBluetoothDevice?.connectGatt(context, true, gattCallback)
-//                    stateChangedHandler.publishPeripheralState(PeripheralState.connected)
-//
-//                    onDataReceived?.invoke(value!!)
-//                    Log.i(tag, "BLE Received Data $peripheralData")
-//                }
-//
-//                if (responseNeeded) {
-//                    Log.i(tag, "BLE Write Request - Response")
-//                    mBluetoothGattServer.sendResponse(
-//                        device,
-//                        requestId,
-//                        BluetoothGatt.GATT_SUCCESS,
-//                        0,
-//                        null
-//                    )
-//                }
-//            }
-//        }
-//
-//        service.addCharacteristic(txCharacteristic)
-//        service.addCharacteristic(rxCharacteristic)
-//
-//        mBluetoothGattServer = mBluetoothManager
-//            .openGattServer(context, serverCallback)
-//            .also { it.addService(service) }
-//    }
-//
-//    fun send(data: ByteArray) {
-//        txCharacteristic?.let { char ->
-//            char.value = data
-//            mBluetoothGatt?.writeCharacteristic(char)
-//            mBluetoothGattServer.notifyCharacteristicChanged(mBluetoothDevice, char, false)
-//        }
-//    }
+
