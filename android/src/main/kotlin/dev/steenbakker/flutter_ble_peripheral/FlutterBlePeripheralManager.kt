@@ -47,7 +47,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
     var pendingResultForPermissionResult: MethodChannel.Result? = null
 
     //TODO
-   private lateinit var mBluetoothGattServer: BluetoothGattServer
+   private var mBluetoothGattServer: BluetoothGattServer? = null
    private var mBluetoothGatt: BluetoothGatt? = null
    private var mBluetoothDevice: BluetoothDevice? = null
    private var txCharacteristic: BluetoothGattCharacteristic? = null
@@ -226,7 +226,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
       txCharacteristic?.let { char ->
           char.value = data
           mBluetoothGatt?.writeCharacteristic(char)
-          mBluetoothGattServer.notifyCharacteristicChanged(mBluetoothDevice, char, false)
+          mBluetoothGattServer?.notifyCharacteristicChanged(mBluetoothDevice, char, false)
       }
     }
     
@@ -294,7 +294,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
                    else -> BluetoothGatt.GATT_FAILURE
                }
 
-               mBluetoothGattServer.sendResponse(device, requestId, status, 0, null)
+               mBluetoothGattServer?.sendResponse(device, requestId, status, 0, null)
            }
 
            override fun onCharacteristicWriteRequest(
@@ -323,7 +323,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
 
                if (responseNeeded) {
                    // Log.i("BLE Write Request - Response")
-                   mBluetoothGattServer.sendResponse(
+                   mBluetoothGattServer?.sendResponse(
                        device,
                        requestId,
                        BluetoothGatt.GATT_SUCCESS,
