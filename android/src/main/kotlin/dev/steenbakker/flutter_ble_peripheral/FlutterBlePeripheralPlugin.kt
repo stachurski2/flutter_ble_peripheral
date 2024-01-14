@@ -128,7 +128,7 @@ class FlutterBlePeripheralPlugin : FlutterPlugin, MethodChannel.MethodCallHandle
                 activityBinding!!.activity.startActivity( Intent(Settings.ACTION_BLUETOOTH_SETTINGS), null)
                 result.success(null)
             }
-//                  "sendData" -> sendData(call, result)
+                 "sendData" -> sendData(call, result)
             else -> Handler(Looper.getMainLooper()).post {
                 result.notImplemented()
             }
@@ -305,18 +305,18 @@ class FlutterBlePeripheralPlugin : FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
-//    private fun sendData(call: MethodCall, result: MethodChannel.Result) {
-//        Log.i(tag, "Try send data: ${call.arguments}")
-//
-//        (call.arguments as? ByteArray)?.let { data ->
-//            flutterBlePeripheralManager!!.send(data)
-//            Log.i(tag, "Send data: $data")
-//            Handler(Looper.getMainLooper()).post { result.success(null) }
-//        } ?: Handler(Looper.getMainLooper()).post {
-//            Log.i(tag, "Send data error")
-//            result.error("122", "send data", null)
-//        }
-//    }
+   private fun sendData(call: MethodCall, result: MethodChannel.Result) {
+       Log.i(tag, "Try send data: ${call.arguments}")
+
+       (call.arguments as? ByteArray)?.let { data ->
+           flutterBlePeripheralManager!!.send(data)
+           Log.i(tag, "Send data: $data")
+           Handler(Looper.getMainLooper()).post { result.success(null) }
+       } ?: Handler(Looper.getMainLooper()).post {
+           Log.i(tag, "Send data error")
+           result.error("122", "send data", null)
+       }
+      }
 
     var pendingResultForPermission: MethodChannel.Result? = null
     private var call: MethodCall? = null
