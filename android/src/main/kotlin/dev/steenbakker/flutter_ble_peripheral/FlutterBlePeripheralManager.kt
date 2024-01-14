@@ -33,6 +33,8 @@ import dev.steenbakker.flutter_ble_peripheral.handlers.StateChangedHandler
 import java.util.UUID;
 
 class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  
+    private val tag: String = "flutter_ble_peripheral_manager"
 
     companion object {
         const val REQUEST_ENABLE_BT = 4
@@ -223,6 +225,8 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
     }
     
     fun send(data: ByteArray) {
+      print("sendData started")
+
       txCharacteristic?.let { char ->
           char.value = data
           mBluetoothGatt?.writeCharacteristic(char)
@@ -231,6 +235,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
     }
     
     private fun addService(peripheralData: AdvertiseData) {
+       print("addService started")
        var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4"
        var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5"
        txCharacteristic = BluetoothGattCharacteristic(
@@ -287,7 +292,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
                offset: Int,
                characteristic: BluetoothGattCharacteristic
            ) {
-               // Log.i("BLE Read Request")
+               Log.i(tag, "BLE Read Request")
 
                val status = when (characteristic.uuid) {
                    rxCharacteristic?.uuid -> BluetoothGatt.GATT_SUCCESS
@@ -306,11 +311,11 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
                offset: Int,
                value: ByteArray?
            ) {
-               // Log.i("BLE Write Request")
+               Log.i(tag, "BLE Write Request")
 
                val isValid = value?.isNotEmpty() == true && characteristic == rxCharacteristic
 
-               // Log.i("BLE Write Request - Is valid? $isValid")
+               Log.i(tag, "BLE Write Request - Is valid? $isValid")
 
                if (isValid) {
                    mBluetoothDevice = device
@@ -322,7 +327,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
                }
 
                if (responseNeeded) {
-                   // Log.i("BLE Write Request - Response")
+                   Log.i(tag, "BLE Write Request - Response")
                    mBluetoothGattServer?.sendResponse(
                        device,
                        requestId,
