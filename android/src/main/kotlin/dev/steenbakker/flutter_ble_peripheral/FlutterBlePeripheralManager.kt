@@ -23,15 +23,16 @@ import dev.steenbakker.flutter_ble_peripheral.callbacks.PeripheralAdvertisingSet
 import dev.steenbakker.flutter_ble_peripheral.models.PeripheralState
 import dev.steenbakker.flutter_ble_peripheral.models.PermissionState
 import dev.steenbakker.flutter_ble_peripheral.models.State
-import io.flutter.Log
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.PluginRegistry
 import dev.steenbakker.flutter_ble_peripheral.handlers.StateChangedHandler
-import android.bluetooth.BluetoothGattService // Add missing import statement
+import java.util.UUID;
 
-
-class FlutterBlePeripheralManager(context: Context) {
+class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
 
     companion object {
         const val REQUEST_ENABLE_BT = 4
@@ -50,7 +51,7 @@ class FlutterBlePeripheralManager(context: Context) {
    private var mBluetoothDevice: BluetoothDevice? = null
    private var txCharacteristic: BluetoothGattCharacteristic? = null
    private var rxCharacteristic: BluetoothGattCharacteristic? = null
-   private lateinit var stateChangedHandler = StateChangedHandler()
+   private var stateChangedHandler: StateChangedHandler = StateChangedHandler(flutterPluginBinding)
     // Permissions for Bluetooth API > 31
     @RequiresApi(Build.VERSION_CODES.S)
     private fun hasBluetoothAdvertisePermission(context: Context): Boolean {
@@ -238,37 +239,14 @@ class FlutterBlePeripheralManager(context: Context) {
        )
 
        rxCharacteristic = BluetoothGattCharacteristic(
-           UUID.fromString(rxCharacteristicUUID),
+             UUID.fromString(rxCharacteristicUUID),
            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
        )
 
        val service = BluetoothGattService(
-           UUID.fromString(peripheralData.serviceDataUuid),
-           BluetoothGattService.SERVICE_TYPE_PRIMARY,
-
-          // ...
-
-          private fun addService(peripheralData: AdvertiseData) {
-             var txCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D4"
-             var rxCharacteristicUUID: String = "08590F7E-DB05-467E-8757-72F6FAEB13D5"
-             txCharacteristic = BluetoothGattCharacteristic(
-               UUID.fromString(txCharacteristicUUID),
-               BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-               BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-             )
-
-             rxCharacteristic = BluetoothGattCharacteristic(
-               UUID.fromString(rxCharacteristicUUID),
-               BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-               BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE,
-             )
-
-             val service = BluetoothGattService(
-               UUID.fromString("0000180D-0000-1000-8000-00805F9B34FB"), // Replace with desired UUID
-               BluetoothGattService.SERVICE_TYPE_PRIMARY,
-             )
-          }
+          UUID.fromString("08590F7E-DB05-467E-8757-72F6FAEB13D3"),
+          BluetoothGattService.SERVICE_TYPE_PRIMARY,
        )
 
        val gattCallback = object : BluetoothGattCallback() {
