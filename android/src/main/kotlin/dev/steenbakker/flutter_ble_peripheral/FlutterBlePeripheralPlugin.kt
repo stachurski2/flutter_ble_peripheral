@@ -54,7 +54,7 @@ class FlutterBlePeripheralPlugin : FlutterPlugin, MethodChannel.MethodCallHandle
 
         context = flutterPluginBinding.applicationContext
         stateChangedHandler = StateChangedHandler(flutterPluginBinding)
-        flutterBlePeripheralManager = FlutterBlePeripheralManager(flutterPluginBinding.applicationContext)
+        flutterBlePeripheralManager = FlutterBlePeripheralManager(flutterPluginBinding.applicationContext, flutterPluginBinding)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
