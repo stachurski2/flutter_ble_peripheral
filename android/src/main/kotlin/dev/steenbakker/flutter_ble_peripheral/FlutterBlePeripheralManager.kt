@@ -39,6 +39,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
         const val REQUEST_PERMISSION_BT = 8
     }
 
+    var context: Context = context
     var mBluetoothManager: BluetoothManager? = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     var mBluetoothLeAdvertiser: BluetoothLeAdvertiser? = null
 
@@ -251,13 +252,13 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
 
        val gattCallback = object : BluetoothGattCallback() {
            override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
-               onMtuChanged?.invoke(mtu)
+            //   onMtuChanged?.invoke(mtu)
            }
        }
 
        val serverCallback = object : BluetoothGattServerCallback() {
            override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
-               onMtuChanged?.invoke(mtu)
+             //  onMtuChanged?.invoke(mtu)
            }
 
            override fun onConnectionStateChange(
@@ -337,7 +338,7 @@ class FlutterBlePeripheralManager(context: Context, flutterPluginBinding: Flutte
        service.addCharacteristic(rxCharacteristic)
 
        mBluetoothGattServer = mBluetoothManager
-           .openGattServer(context, serverCallback)
+             .openGattServer(context, serverCallback)
            .also { it.addService(service) }
    }
 //
